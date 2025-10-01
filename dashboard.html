@@ -2,161 +2,80 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>Pelichet • Dashboard ML</title>
+  <title>Pelichet • Download extract</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <link rel="icon" href="assets/logo-pelichet.png">
   <style>
     :root{
-      --pel-orange:#F07A24;      /* orange Pelichet */
-      --pel-black:#262626;       /* anthracite */
-      --pel-grey:#f6f6f7;        /* fond doux */
+      --pel-orange:#F07A24;
+      --pel-black:#262626;
+      --pel-grey:#f6f6f7;
       --pel-border:#e6e6e8;
       --pel-card:#ffffff;
-      --shadow:0 1px 0 rgba(0,0,0,.03);
     }
     html,body{height:100%}
     body{
-      margin:0; padding:0 clamp(12px,3vw,20px) 40px;
-      background:var(--pel-grey);
-      color:var(--pel-black);
+      margin:0; background:var(--pel-grey); color:var(--pel-black);
       font-family:"Trebuchet MS", Trebuchet, Arial, sans-serif;
       -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+      display:flex; align-items:center; justify-content:center;
     }
-    /* Header */
-    .appbar{
-      position:sticky; top:0; z-index:10;
-      background:linear-gradient(180deg,#fff, #fff0);
-      backdrop-filter:saturate(1.2) blur(6px);
-      padding:10px 0 6px; margin-bottom:8px;
+    .wrap{
+      width:min(720px, 92vw);
+      background:#fff; border:1px solid var(--pel-border); border-radius:16px;
+      padding:20px; box-shadow:0 3px 10px rgba(0,0,0,.05);
+      text-align:center;
     }
-    .brand{ display:flex; align-items:center; gap:10px; }
-    .brand img{ height:32px; width:auto }
-    .brand h1{ margin:0; font-size: clamp(18px, 3.5vw, 22px); font-weight:700; letter-spacing:.2px; }
-    .brand small{ color:#6b6b6b; font-weight:600; font-size: .8em }
+    .brand{ display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:8px }
+    .brand img{ height:40px; width:auto }
+    h1{ margin:0; font-size:22px }
+    p.sub{ margin:.25rem 0 1rem; color:#666 }
 
-    /* Admin (TOUJOURS visible) */
-    .admin{ display:block; margin-top:10px; padding:10px; border:1px dashed var(--pel-border); background:#fff; border-radius:10px}
-    .admin .row{ display:grid; grid-template-columns:1fr; gap:8px; align-items:center }
-    .admin label{ font-size:13px; color:#666 }
-    .admin input[type=text]{ padding:10px 12px; border:1px solid var(--pel-border); border-radius:10px; width:100% }
-    .btn{ padding:12px 14px; border-radius:12px; border:1px solid var(--pel-border); background:#fff; cursor:pointer; touch-action:manipulation; text-decoration:none; color:inherit }
-    .btn:active{ transform:translateY(1px) }
-    .btn:hover{ background:#f9f9fb }
-    .btn-primary{ background:var(--pel-orange); color:#fff; border-color:transparent }
-    .btn-primary:hover{ filter:brightness(.96) }
-    .admin .actions{ display:flex; gap:8px; flex-wrap:wrap }
-
-    /* KPI cards */
-    .kpis{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:10px; margin:10px 0 14px
+    .btn{
+      display:inline-block; text-decoration:none; cursor:pointer; user-select:none;
+      background:var(--pel-orange); color:#fff; border:none; border-radius:12px;
+      padding:14px 18px; font-size:16px; font-weight:700;
+      min-width:240px;
     }
-    .card{
-      background:var(--pel-card); border:1px solid var(--pel-border);
-      border-radius:14px; padding:14px 16px; box-shadow:var(--shadow)
-    }
-    .card h3{ margin:0 0 6px; font-size:12px; text-transform:uppercase; letter-spacing:.8px; color:#888}
-    .card .val{ font-size:28px; font-weight:800; color:var(--pel-black)}
-    .card .pill{ display:inline-block; margin-top:4px; font-size:12px; padding:3px 10px; border-radius:999px; background:#fff7f0; color:#9a4b12; border:1px solid #ffd9ba }
+    .btn[disabled]{ opacity:.6; cursor:not-allowed }
+    .btn:active{ transform: translateY(1px) }
 
-    /* Blocks */
-    .block{ background:#fff; border:1px solid var(--pel-border); border-radius:14px; padding:14px; margin-top:10px; box-shadow:var(--shadow)}
-    .block h2{ margin:0 0 8px; font-size: clamp(16px, 3.5vw, 18px) }
-    #chart{ max-height:360px }
+    .row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:10px }
+    .note{ margin-top:12px; font-size:13px; color:#666 }
+    .status{ margin-top:8px; font-size:13px; color:#444 }
+    .tiny{ font-size:12px; color:#888; margin-top:8px }
 
-    /* Table */
-    .table-scroll{
-      position:relative; overflow:auto; -webkit-overflow-scrolling:touch;
-      background:
-        linear-gradient(to right, white, rgba(255,255,255,0)) 0 0 / 20px 100% no-repeat,
-        linear-gradient(to left,  white, rgba(255,255,255,0)) 100% 0 / 20px 100% no-repeat,
-        radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.08), rgba(0,0,0,0)) 0 50%/10px 90% no-repeat,
-        radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.08), rgba(0,0,0,0)) 100% 50%/10px 90% no-repeat;
-      background-attachment: local, local, scroll, scroll;
-      border-radius:10px;
-    }
-    table{ width:max-content; min-width:100%; border-collapse:collapse }
-    th,td{ border-top:1px solid var(--pel-border); padding:10px 12px; font-size:14px; text-align:right; white-space:nowrap }
-    th:first-child, td:first-child{ text-align:left }
-    thead th{ border-top:none; color:#666; background:#fafafa; position:sticky; top:0; z-index:1 }
-    tfoot th{ background:#fff7ef; color:#8b3a00; border-top:2px solid #ffd1ad }
-
-    /* Log (toujours visible ici ; bouton permet juste cacher/afficher) */
-    #log{ display:block; white-space:pre-wrap; background:#fff; border:1px dashed var(--pel-border); padding:10px; border-radius:10px; font-size:12px; max-height:220px; overflow:auto; margin-top:8px}
-
-    /* Responsive breakpoints */
-    @media (min-width:600px){
-      .admin .row{ grid-template-columns: 1fr 1fr; }
-      .kpis{ grid-template-columns: repeat(2, minmax(220px,1fr)); }
-    }
-    @media (min-width:980px){
-      .kpis{ grid-template-columns: repeat(3, minmax(220px,1fr)); }
-      .brand img{ height:40px }
-    }
+    .cfg{ margin-top:16px; padding:10px; border:1px dashed var(--pel-border); border-radius:10px; }
+    .cfg label{ display:block; text-align:left; font-size:13px; color:#666; margin:6px 0 2px }
+    .cfg input[type=text]{ width:100%; padding:10px 12px; border:1px solid var(--pel-border); border-radius:10px; }
+    .actions{ margin-top:10px }
   </style>
 </head>
 <body>
-  <div class="appbar">
+  <div class="wrap">
     <div class="brand">
       <img src="assets/logo-pelichet.png" alt="Pelichet">
-      <h1>Pelichet • Dashboard ML <small>par équipe & par jour</small></h1>
+      <h1>Download extract</h1>
     </div>
+    <p class="sub">Télécharge le dernier fichier d’<strong>extraction</strong> sauvegardé sur Drive.</p>
 
-    <!-- panneau admin : TOUJOURS visible -->
-    <div class="admin" id="adminPanel">
-      <div class="row">
-        <label>Apps Script URL (/exec)<br>
-          <input id="gasUrl" type="text">
-        </label>
-        <label>Sheet ID<br>
-          <input id="sheetId" type="text">
-        </label>
-      </div>
+    <div class="row">
+      <a id="downloadExtract" class="btn" href="#" target="_blank" rel="noopener" disabled>Téléchargement…</a>
+    </div>
+    <div id="status" class="status">Recherche du dernier extract…</div>
+    <div id="meta" class="tiny"></div>
+
+    <!-- (optionnel) réglages rapides -->
+    <div class="cfg">
+      <label>Apps Script URL (/exec)</label>
+      <input id="gasUrl" type="text" />
       <div class="actions">
-        <button id="refreshBtn" class="btn btn-primary">Actualiser</button>
-        <a id="downloadSuivi"   class="btn" href="#" target="_blank" rel="noopener">Télécharger le dernier “suivi”</a>
-        <a id="downloadExtract" class="btn" href="#" target="_blank" rel="noopener">Download extract</a>
-        <button id="toggleLog" class="btn">Masquer/afficher logs</button>
+        <button id="refreshBtn" class="btn" style="background:#404040">Actualiser</button>
       </div>
-      <div id="log"></div>
+      <p class="note">Astuce : enregistre cette page en favori une fois l’URL renseignée.</p>
     </div>
   </div>
 
-  <!-- KPI -->
-  <section class="kpis">
-    <div class="card">
-      <h3>Total ML (période)</h3>
-      <div class="val" id="kpiTotal">—</div>
-      <div class="pill" id="kpiDays">— jours</div>
-    </div>
-    <div class="card">
-      <h3>Équipes actives</h3>
-      <div class="val" id="kpiTeams">—</div>
-      <div class="pill" id="kpiTopTeam">Meilleure équipe : —</div>
-    </div>
-    <div class="card">
-      <h3>Dernier jour</h3>
-      <div class="val" id="kpiLastDay">—</div>
-      <div class="pill" id="kpiLastTotal">Total jour : —</div>
-    </div>
-  </section>
-
-  <!-- Graph -->
-  <section class="block">
-    <h2>ML par équipe (barres empilées)</h2>
-    <canvas id="chart"></canvas>
-  </section>
-
-  <!-- Tableau -->
-  <section class="block">
-    <h2>Détails par équipe & par jour</h2>
-    <div class="table-scroll">
-      <div id="tableWrap"></div>
-    </div>
-  </section>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>
