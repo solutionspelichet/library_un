@@ -3,6 +3,7 @@ const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwO0P3Yo5kw9PPr
 const DEFAULT_SHEET_ID = '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ';
 
 
+
 // ====== Helpers UI ======
 const $ = (id) => document.getElementById(id);
 const log = (m) => { const el = $('log'); if (el) el.textContent += m + '\n'; console.log(m); };
@@ -205,7 +206,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   if (toggleLog) toggleLog.addEventListener('click', ()=>{
     const el = $('log'); if (!el) return;
-    el.style.display = (el.style.display==='none' || !el.style.display) ? 'block' : 'none';
+    el.style.display = (el.style.display==='none') ? 'block' : 'none';
   });
 
   // auto
