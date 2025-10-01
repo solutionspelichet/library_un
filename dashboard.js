@@ -1,3 +1,13 @@
+
+
+
+
+// ====== Config par défaut ======
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwO0P3Yo5kw9PPriJPXzUMipBrzlGTR_r-Ff6OyEUnsNu-I9q-rESbBq7l2m6KLA3RJ/exec'; // <-- colle ton /exec
+const DEFAULT_SHEET_ID = '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ';
+
+
+
 // --- Sauvegarde : prendre la config globale si présente
 (function ensureConfig(){
   // Si ces const sont déjà définies dans ce fichier, on ne touche à rien
@@ -11,13 +21,6 @@
     window.SHEET_ID = fromGlobal;
   }
 })();
-
-
-
-// ====== Config par défaut ======
-const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwO0P3Yo5kw9PPriJPXzUMipBrzlGTR_r-Ff6OyEUnsNu-I9q-rESbBq7l2m6KLA3RJ/exec'; // <-- colle ton /exec
-const DEFAULT_SHEET_ID = '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ';
-
 
 // ========= HELPERS =========
 const $ = (id) => document.getElementById(id);
