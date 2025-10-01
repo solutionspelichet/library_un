@@ -1,9 +1,7 @@
 // ====== Config par défaut ======
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwO0P3Yo5kw9PPriJPXzUMipBrzlGTR_r-Ff6OyEUnsNu-I9q-rESbBq7l2m6KLA3RJ/exec'; // <-- colle ton /exec
 const DEFAULT_SHEET_ID = '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ';
-// ====== Config par défaut ======
-const DEFAULT_GAS_URL  = 'PUT_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE/exec'; // ← remplace par ton /exec
-const DEFAULT_SHEET_ID = '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ';
+
 
 // ====== Helpers UI ======
 const $ = (id) => document.getElementById(id);
