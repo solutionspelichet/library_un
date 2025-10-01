@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <title>Pelichet • Dashboard ML</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <link rel="icon" href="assets/LOGO-PELICET.jpg">
+  <link rel="icon" href="assets/logo-pelichet.png">
   <style>
     :root{
       --pel-orange:#F07A24;      /* orange Pelichet */
@@ -39,7 +39,7 @@
     .admin .row{ display:grid; grid-template-columns:1fr; gap:8px; align-items:center }
     .admin label{ font-size:13px; color:#666 }
     .admin input[type=text]{ padding:10px 12px; border:1px solid var(--pel-border); border-radius:10px; width:100% }
-    .btn{ padding:12px 14px; border-radius:12px; border:1px solid var(--pel-border); background:#fff; cursor:pointer; touch-action:manipulation }
+    .btn{ padding:12px 14px; border-radius:12px; border:1px solid var(--pel-border); background:#fff; cursor:pointer; touch-action:manipulation; text-decoration:none; color:inherit }
     .btn:active{ transform:translateY(1px) }
     .btn:hover{ background:#f9f9fb }
     .btn-primary{ background:var(--pel-orange); color:#fff; border-color:transparent }
@@ -82,9 +82,6 @@
     thead th{ border-top:none; color:#666; background:#fafafa; position:sticky; top:0; z-index:1 }
     tfoot th{ background:#fff7ef; color:#8b3a00; border-top:2px solid #ffd1ad }
 
-    .link-btn{ text-decoration:none; color:#fff; background:var(--pel-orange); border-radius:12px; padding:12px 14px; display:inline-block; touch-action:manipulation }
-    .link-btn:active{ transform:translateY(1px) }
-
     /* Log (admin only) */
     #log{ display:none; white-space:pre-wrap; background:#fff; border:1px dashed var(--pel-border); padding:10px; border-radius:10px; font-size:12px; max-height:220px; overflow:auto; margin-top:8px}
 
@@ -117,13 +114,10 @@
         </label>
       </div>
       <div class="actions">
-        <div class="actions">
-  <button id="refreshBtn" class="btn btn-primary">Actualiser</button>
-  <a id="downloadSuivi"   class="btn" href="#" target="_blank" rel="noopener">Télécharger le dernier “suivi”</a>
-  <a id="downloadExtract" class="btn" href="#" target="_blank" rel="noopener">Download extract</a>
-  <button id="toggleLog" class="btn">Logs</button>
-</div>
-
+        <button id="refreshBtn" class="btn btn-primary">Actualiser</button>
+        <a id="downloadSuivi"   class="btn" href="#" target="_blank" rel="noopener">Télécharger le dernier “suivi”</a>
+        <a id="downloadExtract" class="btn" href="#" target="_blank" rel="noopener">Download extract</a>
+        <button id="toggleLog" class="btn">Logs</button>
       </div>
       <div id="log"></div>
     </div>
