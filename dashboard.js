@@ -3,12 +3,9 @@ const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwO0P3Yo5kw9PPr
 const DEFAULT_SHEET_ID = '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ';
 
 
-
-// ====== Helpers UI ======
+// ========= HELPERS =========
 const $ = (id) => document.getElementById(id);
-const log = (m) => { const el = $('log'); if (el) el.textContent += m + '\n'; console.log(m); };
 
-// ====== JSONP ======
 function jsonp(url, params={}){
   return new Promise((resolve, reject)=>{
     const cbName = 'cb_' + Math.random().toString(36).slice(2);
@@ -23,192 +20,73 @@ function jsonp(url, params={}){
   });
 }
 
-// ====== Parsing ML ======
-/*
-  ML sheet attendu :
-  headers: ["Contact", "nombre colonne carton YYYY-MM-DD", ...]
-  rows:    [["EQUIPE ...", v1, v2, ...], ...]
-*/
-function parseML(data){
-  const headers = data.headers || [];
-  const rows = data.rows || [];
-  if (!headers.length) return { days: [], teams: [], matrix: [] };
-
-  const dayCols = []; const days = [];
-  for (let i=1; i<headers.length; i++){
-    const h = String(headers[i] || '');
-    const m = h.match(/nombre colonne carton\s+(\d{4}-\d{2}-\d{2})$/i);
-    if (m) { dayCols.push(i); days.push(m[1]); }
-  }
-
-  const teams = []; const matrix = [];
-  for (const r of rows){
-    const team = String(r[0] || '').trim();
-    if (!team) continue;
-    teams.push(team);
-    const vals = [];
-    for (let ci=0; ci<dayCols.length; ci++){
-      const idx = dayCols[ci];
-      let v = r[idx]; if (v == null || v === '') v = 0;
-      const n = typeof v === 'number' ? v : Number(String(v).replace(/\s/g,'').replace(',', '.'));
-      vals.push(isFinite(n) ? n : 0);
-    }
-    matrix.push(vals);
-  }
-  return { days, teams, matrix };
+function setBtnState({text, href, enabled}){
+  const a = $('downloadExtract'); if (!a) return;
+  a.textContent = text || 'Download extract';
+  a.href = href || '#';
+  if (enabled) a.removeAttribute('disabled'); else a.setAttribute('disabled','');
 }
 
-// ====== KPI ======
-function updateKpis({days, teams, matrix}){
-  const kTotal = matrix.flat().reduce((a,b)=>a+(b||0),0);
-  const kTeams = teams.length;
-  const lastDay = days[days.length-1] || '—';
-  let lastTotal = 0;
-  if (days.length){
-    const c = days.length-1;
-    for (let r=0;r<matrix.length;r++) lastTotal += (matrix[r][c]||0);
-  }
-  // top team
-  let bestTeam = '—', bestVal = -1;
-  for (let i=0;i<teams.length;i++){
-    const s = (matrix[i]||[]).reduce((a,b)=>a+(b||0),0);
-    if (s>bestVal){ bestVal=s; bestTeam=teams[i]; }
-  }
+// ========= LOGIQUE =========
+async function fetchLatestExtract(gasUrl){
+  // 1) essaie “extraction”
+  const tryKeyword = async (kw) => {
+    try {
+      const res = await jsonp(gasUrl, { action:'latestFile', type: kw });
+      if (res?.ok && res.latest?.found && res.latest?.url) return res.latest;
+      return null;
+    } catch { return null; }
+  };
 
-  $('kpiTotal').textContent   = kTotal.toFixed(2);
-  $('kpiDays').textContent    = `${days.length} jours`;
-  $('kpiTeams').textContent   = kTeams;
-  $('kpiTopTeam').textContent = `Meilleure équipe : ${bestTeam}`;
-  $('kpiLastDay').textContent = lastDay;
-  $('kpiLastTotal').textContent = `Total jour : ${lastTotal.toFixed(2)}`;
+  let info = await tryKeyword('extraction');
+  // 2) tolérance orthographe & variantes (si nécessaire)
+  if (!info) info = await tryKeyword('extract');
+  if (!info) info = await tryKeyword('inventaire');
+  if (!info) info = await tryKeyword('inventory');
+
+  // 3) dernier recours: rien trouvé
+  return info;
 }
 
-// ====== Rendu tableau ======
-function renderTable({days, teams, matrix}){
-  const wrap = $('tableWrap');
-  if (!wrap) return;
-  if (!days.length) { wrap.innerHTML = '<p><em>Pas de colonnes “nombre colonne carton …” trouvées.</em></p>'; return; }
+async function updateExtractLink(){
+  const gasUrl = ($('gasUrl')?.value || '').trim();
+  const statusEl = $('status');
+  const metaEl = $('meta');
 
-  let html = '<table><thead><tr><th>Contact</th>';
-  for (const d of days) html += `<th>${d}</th>`;
-  html += '<th>Total</th></tr></thead><tbody>';
-
-  for (let i=0;i<teams.length;i++){
-    const t = teams[i];
-    const row = matrix[i] || [];
-    const sum = row.reduce((a,b)=>a+(b||0),0);
-    html += `<tr><td>${t}</td>`;
-    for (const v of row) html += `<td>${v.toFixed(2)}</td>`;
-    html += `<td><strong>${sum.toFixed(2)}</strong></td></tr>`;
+  if (!gasUrl) {
+    setBtnState({ text:'Renseigne l’URL Apps Script', enabled:false });
+    if (statusEl) statusEl.textContent = 'Saisis l’URL /exec de la Web App puis clique Actualiser.';
+    return;
   }
 
-  // total colonnes
-  const colTotals = new Array(days.length).fill(0);
-  for (let c=0;c<days.length;c++){
-    for (let r=0;r<matrix.length;r++){
-      colTotals[c] += (matrix[r][c] || 0);
-    }
+  setBtnState({ text:'Recherche…', enabled:false, href:'#' });
+  if (statusEl) statusEl.textContent = 'Recherche du dernier extract dans le dossier Drive…';
+  if (metaEl) metaEl.textContent = '';
+
+  const info = await fetchLatestExtract(gasUrl);
+
+  if (info) {
+    setBtnState({ text:`Download extract (${info.name})`, enabled:true, href:info.url });
+    if (statusEl) statusEl.textContent = 'Fichier trouvé.';
+    if (metaEl) metaEl.textContent = `Taille: ${(info.size/1024/1024).toFixed(2)} MB • Créé le: ${new Date(info.created).toLocaleString()}`;
+  } else {
+    setBtnState({ text:'No extract found', enabled:false, href:'#' });
+    if (statusEl) statusEl.textContent =
+      'Aucun fichier “extraction” détecté. Vérifie que ton flux PWA envoie bien saveExtraction=true et que les fichiers contiennent « extraction » dans le nom.';
   }
-  const grandTotal = colTotals.reduce((a,b)=>a+b,0);
-
-  html += `<tfoot><tr><th>Total</th>`;
-  for (const v of colTotals) html += `<th>${v.toFixed(2)}</th>`;
-  html += `<th>${grandTotal.toFixed(2)}</th></tr></tfoot>`;
-
-  html += '</tbody></table>';
-  wrap.innerHTML = html;
 }
 
-// ====== Chart (palette Pelichet) ======
-let chartInst = null;
-function renderChart({days, teams, matrix}){
-  const ctx = $('chart');
-  if (!ctx || !days.length) return;
-
-  // palette Pelichet
-  const base = [
-    '#F07A24','#404040','#8C8C8C','#BFBFBF',
-    '#FFB37A','#737373','#D9D9D9','#595959',
-    '#FFC699','#A6A6A6'
-  ];
-  const ds = teams.map((t,i)=>({
-    label:t,
-    data:matrix[i]||[],
-    backgroundColor: base[i % base.length],
-    borderColor: '#ffffff',
-    borderWidth:1
-  }));
-
-  if (chartInst) chartInst.destroy();
-  chartInst = new Chart(ctx, {
-    type:'bar',
-    data:{ labels:days, datasets:ds },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{ legend:{ position:'bottom' } },
-      scales:{ x:{ stacked:true }, y:{ stacked:true, beginAtZero:true } }
-    }
-  });
-}
-
-// ====== Derniers fichiers Drive (suivi / extraction) ======
-async function updateLatestFileLink(gasUrl, keyword, anchorId, fallbackText){
-  try{
-    const res = await jsonp(gasUrl, { action: 'latestFile', type: keyword });
-    const a = document.getElementById(anchorId);
-    if (!a) return;
-    if (res?.ok && res.latest?.found && res.latest?.url){
-      a.href = res.latest.url;
-      a.textContent = (keyword.toLowerCase()==='extraction')
-        ? `Download extract (${res.latest.name})`
-        : `Dernier ${keyword} : ${res.latest.name}`;
-      log(`Dernier ${keyword} → ${res.latest.name}`);
-    } else {
-      a.href = '#';
-      a.textContent = fallbackText;
-      log(`Aucun fichier “${keyword}” trouvé`);
-    }
-  }catch(e){ log(`latestFile('${keyword}') error: `+e.message); }
-}
-
-// ====== Chargement ML ======
-async function loadML(gasUrl, sheetId){
-  const res = await jsonp(gasUrl, { action: 'ml', sheetId });
-  if (!res || !res.ok) { log('Erreur lecture ML'); return; }
-  const parsed = parseML(res.data || {});
-  updateKpis(parsed);
-  renderTable(parsed);
-  renderChart(parsed);
-  log(`ML chargé: équipes=${parsed.teams.length}, jours=${parsed.days.length}`);
-}
-
-// ====== Boot ======
+// ========= BOOT =========
 document.addEventListener('DOMContentLoaded', ()=>{
-  const gasInput  = $('gasUrl');
-  const sheetInput= $('sheetId');
-  const btn       = $('refreshBtn');
-  const toggleLog = $('toggleLog');
+  const urlInput = $('gasUrl');
+  const saved = localStorage.getItem('GAS_URL_EXTRACT');
+  urlInput.value = saved || DEFAULT_GAS_URL;
 
-  if (gasInput)  gasInput.value  = DEFAULT_GAS_URL;
-  if (sheetInput)sheetInput.value= DEFAULT_SHEET_ID;
-
-  if (btn) btn.addEventListener('click', async ()=>{
-    const gasUrl  = gasInput.value.trim();
-    const sheetId = sheetInput.value.trim();
-    if (!gasUrl || !sheetId) { alert('Renseigne Apps Script URL et Sheet ID'); return; }
-    const logEl = $('log'); if (logEl) logEl.textContent = '';
-    await loadML(gasUrl, sheetId);
-    // liens Drive
-    await updateLatestFileLink(gasUrl, 'suivi',      'downloadSuivi',   'Aucun “suivi” trouvé');
-    await updateLatestFileLink(gasUrl, 'extraction', 'downloadExtract', 'No extract found');
+  $('refreshBtn').addEventListener('click', ()=>{
+    localStorage.setItem('GAS_URL_EXTRACT', urlInput.value.trim());
+    updateExtractLink();
   });
 
-  if (toggleLog) toggleLog.addEventListener('click', ()=>{
-    const el = $('log'); if (!el) return;
-    el.style.display = (el.style.display==='none') ? 'block' : 'none';
-  });
-
-  // auto
-  if (btn) btn.click();
+  // auto au chargement
+  updateExtractLink();
 });
