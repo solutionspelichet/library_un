@@ -147,6 +147,16 @@
   </section>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+  // Config globale lue par dashboard.js si les const n'existent pas
+  window.APP_CONFIG = {
+    GAS_URL:  'https://script.google.com/macros/s/AKfycbwO0P3Yo5kw9PPriJPXzUMipBrzlGTR_r-Ff6OyEUnsNu-I9q-rESbBq7l2m6KLA3RJ/exec',  // <-- ton /exec
+    SHEET_ID: '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ'     // <-- ton Sheet ID
+  };
+</script>
+<!-- Ajoute un cache-buster pour forcer le rafraîchissement -->
+<script src="dashboard.js?v=2025-10-01-1"></script>
+
   <script src="dashboard.js"></script>
 </body>
 </html>
