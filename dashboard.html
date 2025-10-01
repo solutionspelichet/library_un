@@ -34,8 +34,8 @@
     .brand h1{ margin:0; font-size: clamp(18px, 3.5vw, 22px); font-weight:700; letter-spacing:.2px; }
     .brand small{ color:#6b6b6b; font-weight:600; font-size: .8em }
 
-    /* Admin (hidden by default; visible with ?admin=1) */
-    .admin{ display:none; margin-top:10px; padding:10px; border:1px dashed var(--pel-border); background:#fff; border-radius:10px}
+    /* Admin (TOUJOURS visible) */
+    .admin{ display:block; margin-top:10px; padding:10px; border:1px dashed var(--pel-border); background:#fff; border-radius:10px}
     .admin .row{ display:grid; grid-template-columns:1fr; gap:8px; align-items:center }
     .admin label{ font-size:13px; color:#666 }
     .admin input[type=text]{ padding:10px 12px; border:1px solid var(--pel-border); border-radius:10px; width:100% }
@@ -82,8 +82,8 @@
     thead th{ border-top:none; color:#666; background:#fafafa; position:sticky; top:0; z-index:1 }
     tfoot th{ background:#fff7ef; color:#8b3a00; border-top:2px solid #ffd1ad }
 
-    /* Log (admin only) */
-    #log{ display:none; white-space:pre-wrap; background:#fff; border:1px dashed var(--pel-border); padding:10px; border-radius:10px; font-size:12px; max-height:220px; overflow:auto; margin-top:8px}
+    /* Log (toujours visible ici ; bouton permet juste cacher/afficher) */
+    #log{ display:block; white-space:pre-wrap; background:#fff; border:1px dashed var(--pel-border); padding:10px; border-radius:10px; font-size:12px; max-height:220px; overflow:auto; margin-top:8px}
 
     /* Responsive breakpoints */
     @media (min-width:600px){
@@ -103,7 +103,7 @@
       <h1>Pelichet • Dashboard ML <small>par équipe & par jour</small></h1>
     </div>
 
-    <!-- panneau admin : caché par défaut (visible avec ?admin=1) -->
+    <!-- panneau admin : TOUJOURS visible -->
     <div class="admin" id="adminPanel">
       <div class="row">
         <label>Apps Script URL (/exec)<br>
@@ -117,7 +117,7 @@
         <button id="refreshBtn" class="btn btn-primary">Actualiser</button>
         <a id="downloadSuivi"   class="btn" href="#" target="_blank" rel="noopener">Télécharger le dernier “suivi”</a>
         <a id="downloadExtract" class="btn" href="#" target="_blank" rel="noopener">Download extract</a>
-        <button id="toggleLog" class="btn">Logs</button>
+        <button id="toggleLog" class="btn">Masquer/afficher logs</button>
       </div>
       <div id="log"></div>
     </div>
@@ -158,13 +158,5 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="dashboard.js"></script>
-  <script>
-    // Afficher le panneau admin seulement avec ?admin=1
-    const params = new URLSearchParams(location.search);
-    if (params.get('admin') === '1') {
-      document.getElementById('adminPanel').style.display = 'block';
-      document.getElementById('log').style.display = 'block';
-    }
-  </script>
 </body>
 </html>
