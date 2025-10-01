@@ -7,24 +7,6 @@ const DEFAULT_SHEET_ID = '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ';
 const $ = (id) => document.getElementById(id);
 const log = (m) => { const el = $('log'); if (el) el.textContent += m + '\n'; console.log(m); };
 
-
-async function updateLatestFileLink(gasUrl, keyword, anchorId, fallbackText){
-  try{
-    const res = await jsonp(gasUrl, { action: 'latestFile', type: keyword });
-    const a = document.getElementById(anchorId);
-    if (!a) return;
-    if (res?.ok && res.latest?.found && res.latest?.url){
-      a.href = res.latest.url;
-      a.textContent = (keyword.toLowerCase()==='extraction')
-        ? `Download extract (${res.latest.name})`
-        : `Dernier ${keyword} : ${res.latest.name}`;
-    } else {
-      a.href = '#';
-      a.textContent = fallbackText;
-    }
-  }catch(e){ log(`latestFile('${keyword}') error: `+e.message); }
-}
-
 // ====== JSONP ======
 function jsonp(url, params={}){
   return new Promise((resolve, reject)=>{
@@ -41,6 +23,11 @@ function jsonp(url, params={}){
 }
 
 // ====== Parsing ML ======
+/*
+  ML sheet attendu :
+  headers: ["Contact", "nombre colonne carton YYYY-MM-DD", ...]
+  rows:    [["EQUIPE ...", v1, v2, ...], ...]
+*/
 function parseML(data){
   const headers = data.headers || [];
   const rows = data.rows || [];
@@ -87,9 +74,9 @@ function updateKpis({days, teams, matrix}){
     if (s>bestVal){ bestVal=s; bestTeam=teams[i]; }
   }
 
-  $('kpiTotal').textContent = kTotal.toFixed(2);
-  $('kpiDays').textContent  = `${days.length} jours`;
-  $('kpiTeams').textContent = kTeams;
+  $('kpiTotal').textContent   = kTotal.toFixed(2);
+  $('kpiDays').textContent    = `${days.length} jours`;
+  $('kpiTeams').textContent   = kTeams;
   $('kpiTopTeam').textContent = `Meilleure équipe : ${bestTeam}`;
   $('kpiLastDay').textContent = lastDay;
   $('kpiLastTotal').textContent = `Total jour : ${lastTotal.toFixed(2)}`;
@@ -164,20 +151,24 @@ function renderChart({days, teams, matrix}){
   });
 }
 
-// ====== Dernier fichier “suivi” ======
-async function updateLatestSuiviLink(gasUrl){
+// ====== Derniers fichiers Drive (suivi / extraction) ======
+async function updateLatestFileLink(gasUrl, keyword, anchorId, fallbackText){
   try{
-    const res = await jsonp(gasUrl, { action: 'latestSuivi' });
-    const a = $('downloadSuivi');
+    const res = await jsonp(gasUrl, { action: 'latestFile', type: keyword });
+    const a = document.getElementById(anchorId);
+    if (!a) return;
     if (res?.ok && res.latest?.found && res.latest?.url){
       a.href = res.latest.url;
-      a.textContent = `Dernier suivi : ${res.latest.name}`;
-      log(`Dernier suivi → ${res.latest.name}`);
+      a.textContent = (keyword.toLowerCase()==='extraction')
+        ? `Download extract (${res.latest.name})`
+        : `Dernier ${keyword} : ${res.latest.name}`;
+      log(`Dernier ${keyword} → ${res.latest.name}`);
     } else {
       a.href = '#';
-      a.textContent = 'Aucun fichier “suivi” trouvé';
+      a.textContent = fallbackText;
+      log(`Aucun fichier “${keyword}” trouvé`);
     }
-  }catch(e){ log('latestSuivi error: '+e.message); }
+  }catch(e){ log(`latestFile('${keyword}') error: `+e.message); }
 }
 
 // ====== Chargement ML ======
@@ -193,21 +184,23 @@ async function loadML(gasUrl, sheetId){
 
 // ====== Boot ======
 document.addEventListener('DOMContentLoaded', ()=>{
-  const gasInput = $('gasUrl');
-  const sheetInput = $('sheetId');
-  const btn = $('refreshBtn');
+  const gasInput  = $('gasUrl');
+  const sheetInput= $('sheetId');
+  const btn       = $('refreshBtn');
   const toggleLog = $('toggleLog');
 
-  if (gasInput) gasInput.value = DEFAULT_GAS_URL;
-  if (sheetInput) sheetInput.value = DEFAULT_SHEET_ID;
+  if (gasInput)  gasInput.value  = DEFAULT_GAS_URL;
+  if (sheetInput)sheetInput.value= DEFAULT_SHEET_ID;
 
   if (btn) btn.addEventListener('click', async ()=>{
-    const gasUrl = gasInput.value.trim();
+    const gasUrl  = gasInput.value.trim();
     const sheetId = sheetInput.value.trim();
     if (!gasUrl || !sheetId) { alert('Renseigne Apps Script URL et Sheet ID'); return; }
     const logEl = $('log'); if (logEl) logEl.textContent = '';
     await loadML(gasUrl, sheetId);
-    await updateLatestSuiviLink(gasUrl);
+    // liens Drive
+    await updateLatestFileLink(gasUrl, 'suivi',      'downloadSuivi',   'Aucun “suivi” trouvé');
+    await updateLatestFileLink(gasUrl, 'extraction', 'downloadExtract', 'No extract found');
   });
 
   if (toggleLog) toggleLog.addEventListener('click', ()=>{
@@ -217,14 +210,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // auto
   if (btn) btn.click();
-  if (btn) btn.addEventListener('click', async ()=>{
-  const gasUrl = gasInput.value.trim();
-  const sheetId = sheetInput.value.trim();
-  if (!gasUrl || !sheetId) { alert('Renseigne Apps Script URL et Sheet ID'); return; }
-  const logEl = $('log'); if (logEl) logEl.textContent = '';
-  await loadML(gasUrl, sheetId);
-  // liens Drive
-  await updateLatestFileLink(gasUrl, 'suivi',      'downloadSuivi',   'Aucun “suivi” trouvé');
-  await updateLatestFileLink(gasUrl, 'extraction', 'downloadExtract', 'No extract found');
-});
 });
