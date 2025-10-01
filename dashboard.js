@@ -3,11 +3,10 @@ const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwO0P3Yo5kw9PPr
 const DEFAULT_SHEET_ID = '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ';
 
 
-// ====== Helpers UI ======
+// ====== Helpers ======
 const $ = (id) => document.getElementById(id);
-const log = (m) => { const el = $('log'); if (el) el.textContent += m + '\n'; console.log(m); };
 
-// ====== JSONP ======
+// JSONP util (pour éviter CORS)
 function jsonp(url, params={}){
   return new Promise((resolve, reject)=>{
     const cbName = 'cb_' + Math.random().toString(36).slice(2);
@@ -22,12 +21,45 @@ function jsonp(url, params={}){
   });
 }
 
-// ====== Parsing ML ======
-/*
-  ML sheet attendu :
-  headers: ["Contact", "nombre colonne carton YYYY-MM-DD", ...]
-  rows:    [["EQUIPE ...", v1, v2, ...], ...]
-*/
+// ====== Download button state ======
+function setDownloadWaiting(){
+  const a = $('downloadSuivi');
+  const st = $('dlStatus');
+  if (!a) return;
+  a.classList.remove('primary');
+  a.classList.add('wait');
+  a.textContent = 'Please wait for download…';
+  a.href = '#';
+  if (st) st.textContent = '';
+}
+function setDownloadReady(info){
+  const a = $('downloadSuivi');
+  const st = $('dlStatus');
+  if (!a) return;
+  a.classList.remove('wait');
+  a.classList.add('primary');
+  a.textContent = 'Download file';
+  a.href = info.url;
+  if (st) st.textContent = info.name ? info.name : '';
+}
+
+// Poll le dernier fichier “suivi” (jusqu’à dispo)
+async function pollLatestSuivi(gasUrl, { attempts=24, intervalMs=5000 } = {}){
+  setDownloadWaiting();
+  for (let i=0; i<attempts; i++){
+    try{
+      const res = await jsonp(gasUrl, { action:'latestFile', type:'suivi' });
+      if (res?.ok && res.latest?.found && res.latest?.url){
+        setDownloadReady(res.latest);
+        return;
+      }
+    }catch(_){}
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  // Après toutes les tentatives, on reste en mode "wait"
+}
+
+// ====== ML parsing / rendering ======
 function parseML(data){
   const headers = data.headers || [];
   const rows = data.rows || [];
@@ -57,7 +89,6 @@ function parseML(data){
   return { days, teams, matrix };
 }
 
-// ====== KPI ======
 function updateKpis({days, teams, matrix}){
   const kTotal = matrix.flat().reduce((a,b)=>a+(b||0),0);
   const kTeams = teams.length;
@@ -67,13 +98,11 @@ function updateKpis({days, teams, matrix}){
     const c = days.length-1;
     for (let r=0;r<matrix.length;r++) lastTotal += (matrix[r][c]||0);
   }
-  // top team
   let bestTeam = '—', bestVal = -1;
   for (let i=0;i<teams.length;i++){
     const s = (matrix[i]||[]).reduce((a,b)=>a+(b||0),0);
     if (s>bestVal){ bestVal=s; bestTeam=teams[i]; }
   }
-
   $('kpiTotal').textContent   = kTotal.toFixed(2);
   $('kpiDays').textContent    = `${days.length} jours`;
   $('kpiTeams').textContent   = kTeams;
@@ -82,7 +111,6 @@ function updateKpis({days, teams, matrix}){
   $('kpiLastTotal').textContent = `Total jour : ${lastTotal.toFixed(2)}`;
 }
 
-// ====== Rendu tableau ======
 function renderTable({days, teams, matrix}){
   const wrap = $('tableWrap');
   if (!wrap) return;
@@ -101,7 +129,6 @@ function renderTable({days, teams, matrix}){
     html += `<td><strong>${sum.toFixed(2)}</strong></td></tr>`;
   }
 
-  // total colonnes
   const colTotals = new Array(days.length).fill(0);
   for (let c=0;c<days.length;c++){
     for (let r=0;r<matrix.length;r++){
@@ -118,13 +145,11 @@ function renderTable({days, teams, matrix}){
   wrap.innerHTML = html;
 }
 
-// ====== Chart (palette Pelichet) ======
 let chartInst = null;
 function renderChart({days, teams, matrix}){
   const ctx = $('chart');
   if (!ctx || !days.length) return;
 
-  // palette Pelichet
   const base = [
     '#F07A24','#404040','#8C8C8C','#BFBFBF',
     '#FFB37A','#737373','#D9D9D9','#595959',
@@ -151,61 +176,19 @@ function renderChart({days, teams, matrix}){
   });
 }
 
-// ====== Dernier fichier Drive (SUVI uniquement) ======
-async function updateLatestSuiviLink(gasUrl){
-  try{
-    const res = await jsonp(gasUrl, { action: 'latestFile', type: 'suivi' });
-    const a = $('downloadSuivi');
-    if (!a) return;
-    if (res?.ok && res.latest?.found && res.latest?.url){
-      a.href = res.latest.url;
-      a.textContent = `Dernier suivi : ${res.latest.name}`;
-      log(`Dernier suivi → ${res.latest.name}`);
-    } else {
-      a.href = '#';
-      a.textContent = 'Aucun fichier “suivi” trouvé';
-      log('Aucun fichier “suivi” trouvé dans le dossier Drive.');
-    }
-  }catch(e){ log('latestFile("suivi") error: '+e.message); }
-}
-
-// ====== Chargement ML ======
-async function loadML(gasUrl, sheetId){
-  const res = await jsonp(gasUrl, { action: 'ml', sheetId });
-  if (!res || !res.ok) { log('Erreur lecture ML'); return; }
-  const parsed = parseML(res.data || {});
-  updateKpis(parsed);
-  renderTable(parsed);
-  renderChart(parsed);
-  log(`ML chargé: équipes=${parsed.teams.length}, jours=${parsed.days.length}`);
-}
-
 // ====== Boot ======
-document.addEventListener('DOMContentLoaded', ()=>{
-  const gasInput  = $('gasUrl');
-  const sheetInput= $('sheetId');
-  const btn       = $('refreshBtn');
-  const toggleLog = $('toggleLog');
+document.addEventListener('DOMContentLoaded', async ()=>{
+  // Charge le dashboard (ML)
+  try{
+    const res = await jsonp(GAS_URL, { action:'ml', sheetId: SHEET_ID });
+    if (res?.ok){
+      const parsed = parseML(res.data || {});
+      updateKpis(parsed);
+      renderTable(parsed);
+      renderChart(parsed);
+    }
+  }catch(e){ /* ignore visuel */ }
 
-  // préremplir
-  if (gasInput)  gasInput.value  = DEFAULT_GAS_URL;
-  if (sheetInput)sheetInput.value= DEFAULT_SHEET_ID;
-
-  if (btn) btn.addEventListener('click', async ()=>{
-    const gasUrl  = gasInput.value.trim();
-    const sheetId = sheetInput.value.trim();
-    if (!gasUrl || !sheetId) { alert('Renseigne Apps Script URL et Sheet ID'); return; }
-    const logEl = $('log'); if (logEl) logEl.textContent = '';
-    await loadML(gasUrl, sheetId);
-    // lien Drive (SUVI UNIQUEMENT)
-    await updateLatestSuiviLink(gasUrl);
-  });
-
-  if (toggleLog) toggleLog.addEventListener('click', ()=>{
-    const el = $('log'); if (!el) return;
-    el.style.display = (el.style.display==='none') ? 'block' : 'none';
-  });
-
-  // auto
-  if (btn) btn.click();
+  // Bouton téléchargement : poll jusqu’à disponibilité
+  pollLatestSuivi(GAS_URL, { attempts: 24, intervalMs: 5000 });
 });
