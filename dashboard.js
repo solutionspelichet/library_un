@@ -1,3 +1,19 @@
+// --- Sauvegarde : prendre la config globale si présente
+(function ensureConfig(){
+  // Si ces const sont déjà définies dans ce fichier, on ne touche à rien
+  // Sinon, on crée des variables globales depuis window.APP_CONFIG
+  if (typeof window.GAS_URL === 'undefined') {
+    const fromGlobal = (window.APP_CONFIG && window.APP_CONFIG.GAS_URL) || '';
+    window.GAS_URL = fromGlobal; // devient dispo partout
+  }
+  if (typeof window.SHEET_ID === 'undefined') {
+    const fromGlobal = (window.APP_CONFIG && window.APP_CONFIG.SHEET_ID) || '';
+    window.SHEET_ID = fromGlobal;
+  }
+})();
+
+
+
 // ====== Config par défaut ======
 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwO0P3Yo5kw9PPriJPXzUMipBrzlGTR_r-Ff6OyEUnsNu-I9q-rESbBq7l2m6KLA3RJ/exec'; // <-- colle ton /exec
 const DEFAULT_SHEET_ID = '1AptbV2NbY0WQZpe_Xt1K2iVlDpgKADElamKQCg3GcXQ';
