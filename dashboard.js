@@ -1,7 +1,4 @@
-
-
-
-// ====== Sécurise la config même avec le cache (lit APP_CONFIG du HTML) ======
+// ====== Sécuriser la config depuis le HTML (APP_CONFIG) ======
 (function ensureConfig(){
   if (typeof window.GAS_URL === 'undefined') {
     window.GAS_URL = (window.APP_CONFIG && window.APP_CONFIG.GAS_URL) || '';
@@ -9,12 +6,15 @@
   if (typeof window.SHEET_ID === 'undefined') {
     window.SHEET_ID = (window.APP_CONFIG && window.APP_CONFIG.SHEET_ID) || '';
   }
+  // Validation basique
+  if (!/^https?:\/\//i.test(window.GAS_URL)) {
+    console.error('GAS_URL invalide : renseigne une URL /exec complète de ta Web App Apps Script.');
+  }
 })();
 
 // ====== Helpers ======
 const $ = (id) => document.getElementById(id);
 
-// JSONP (contourne CORS)
 function jsonp(url, params = {}) {
   return new Promise((resolve, reject) => {
     const cbName = 'cb_' + Math.random().toString(36).slice(2);
@@ -60,7 +60,7 @@ async function pollLatestSuivi(gasUrl, { attempts=24, intervalMs=5000 } = {}){
     }catch(_){}
     await new Promise(r => setTimeout(r, intervalMs));
   }
-  // après toutes les tentatives → reste en attente
+  // après les tentatives → reste en attente
 }
 
 // ====== ML parsing / rendering ======
@@ -163,9 +163,31 @@ function renderChart({days, teams, matrix}){
   });
 }
 
+// ====== Weather embed (iframe + fallback) ======
+function initWeatherEmbed(){
+  const url = 'https://www.ecowitt.net/home/share?authorize=6H4BCA';
+  const frame = document.getElementById('wxFrame');
+  const msg = document.getElementById('wxMsg');
+  if (!frame) return;
+
+  if (msg) msg.textContent = 'Chargement de la station…';
+  frame.src = url;
+
+  frame.addEventListener('load', () => {
+    frame.style.display = 'block';
+    if (msg) msg.textContent = ' ';
+  });
+
+  setTimeout(() => {
+    if (frame.style.display === 'none') {
+      if (msg) msg.textContent = 'Impossible d’intégrer la page (bloquée par le site). Utilise le bouton “Ouvrir dans un nouvel onglet”.';
+    }
+  }, 3000);
+}
+
 // ====== Boot ======
 document.addEventListener('DOMContentLoaded', async ()=>{
-  if (!window.GAS_URL) console.warn('GAS_URL manquant : renseigne APP_CONFIG dans le HTML.');
+  // Charger ML
   try{
     const res = await jsonp(window.GAS_URL, { action:'ml', sheetId: window.SHEET_ID });
     if (res?.ok){
@@ -175,5 +197,10 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   }catch(e){ /* silencieux */ }
 
   // Bouton téléchargement : poll jusqu’à disponibilité
-  pollLatestSuivi(window.GAS_URL, { attempts:24, intervalMs:5000 });
+  if (/^https?:\/\//i.test(window.GAS_URL)) {
+    pollLatestSuivi(window.GAS_URL, { attempts:24, intervalMs:5000 });
+  }
+
+  // Init météo
+  initWeatherEmbed();
 });
