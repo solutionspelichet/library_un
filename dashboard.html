@@ -100,6 +100,32 @@
     thead th{ border-top:none; color:#666; background:#fafafa; position:sticky; top:0; z-index:1 }
     tfoot th{ background:#fff7ef; color:#8b3a00; border-top:2px solid #ffd1ad }
 
+
+    <section class="block">
+  <h2>Station météo</h2>
+  <p id="wxMsg" class="wx-msg">Chargement de la station…</p>
+  <div class="iframe-wrap">
+    <iframe
+      id="wxFrame"
+      title="Station météo"
+      loading="lazy"
+      referrerpolicy="no-referrer"
+      allowfullscreen
+      sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
+      style="display:none;border:0;width:100%;height:100%;"
+    ></iframe>
+  </div>
+  <div class="wx-actions">
+    <a class="btn secondary"
+       href="https://www.ecowitt.net/home/share?authorize=6H4BCA"
+       target="_blank" rel="noopener">
+      Ouvrir dans un nouvel onglet
+    </a>
+  </div>
+</section>
+
+
+    
     /* Responsive */
     @media (min-width:600px){
       .kpis{ grid-template-columns: repeat(2, minmax(220px,1fr)); }
