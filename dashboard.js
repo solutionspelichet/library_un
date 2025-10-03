@@ -168,22 +168,34 @@ function initWeatherEmbed(){
   const url = 'https://www.ecowitt.net/home/share?authorize=6H4BCA';
   const frame = document.getElementById('wxFrame');
   const msg = document.getElementById('wxMsg');
+  const openBtn = document.querySelector('.wx-actions .btn');
+
   if (!frame) return;
 
+  // message d’attente
   if (msg) msg.textContent = 'Chargement de la station…';
   frame.src = url;
 
+  // Si l’iframe charge, on l’affiche
   frame.addEventListener('load', () => {
     frame.style.display = 'block';
-    if (msg) msg.textContent = ' ';
+    if (msg) msg.textContent = '';
   });
 
+  // Fallback si bloqué (X-Frame-Options/CSP)
   setTimeout(() => {
     if (frame.style.display === 'none') {
-      if (msg) msg.textContent = 'Impossible d’intégrer la page (bloquée par le site). Utilise le bouton “Ouvrir dans un nouvel onglet”.';
+      if (msg) msg.textContent = 'Impossible d’intégrer la page (bloquée par le site). Utilise le bouton ci-dessous.';
+      if (openBtn) {
+        // Passe le bouton en style primaire et libellé clair
+        openBtn.classList.remove('secondary');
+        openBtn.classList.add('primary');
+        openBtn.textContent = 'Ouvrir la station météo';
+      }
     }
-  }, 3000);
+  }, 2000);
 }
+
 
 // ====== Boot ======
 document.addEventListener('DOMContentLoaded', async ()=>{
